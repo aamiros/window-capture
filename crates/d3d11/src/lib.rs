@@ -1,7 +1,7 @@
+use anyhow::Context;
 use utils::platforms::ToUtf8String;
-use windows::Graphics::Capture::{
-    Direct3D11CaptureFramePool, GraphicsCaptureItem, IGraphicsCaptureItemStatics,
-};
+use windows::Foundation::TypedEventHandler;
+use windows::Graphics::Capture::{Direct3D11CaptureFramePool, GraphicsCaptureItem};
 use windows::Graphics::DirectX::Direct3D11::IDirect3DDevice;
 use windows::Graphics::DirectX::DirectXPixelFormat;
 use windows::UI::WindowId;
@@ -10,6 +10,8 @@ use windows::Win32::Graphics::Dxgi::Common::{
     DXGI_FORMAT, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_R16G16B16A16_FLOAT,
 };
 use windows::Win32::Graphics::Gdi::{MONITOR_DEFAULTTONEAREST, MonitorFromWindow};
+use windows::Win32::System::Com::{COWAIT_WAITALL, CoWaitForMultipleHandles};
+use windows::Win32::UI::WindowsAndMessaging::{DispatchMessageW, GetMessageW, MSG};
 use windows::Win32::{
     Foundation::HMODULE,
     Graphics::{
@@ -83,7 +85,28 @@ pub fn device_create(window: HWND) -> anyhow::Result<()> {
     let frame_pool =
         Direct3D11CaptureFramePool::Create(&device, DirectXPixelFormat(format.0), 2, size)?;
     let session = frame_pool.CreateCaptureSession(&item)?;
-    // frame_pool.FrameArrived(handler)
+    let handler = TypedEventHandler::new(
+        |sender: windows::core::Ref<'_, Direct3D11CaptureFramePool>, args| {
+            println!("Frame arrived");
+            if let Some(frame) = sender.as_ref() {
+                let frame = frame.TryGetNextFrame()?;
+            }
+            Ok(())
+        },
+    );
+    let token = frame_pool.FrameArrived(&handler)?;
+    session.StartCapture()?;
+    // 事件循环
+    unsafe {
+        let mut msg: MSG = std::mem::zeroed();
+        while GetMessageW(&mut msg, None, 0, 0).as_bool() {
+            DispatchMessageW(&msg);
+        }
+    }
+
+    session.Close()?;
+    frame_pool.RemoveFrameArrived(token)?;
+    frame_pool.Close()?;
     Ok(())
 }
 

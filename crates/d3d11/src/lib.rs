@@ -124,3 +124,10 @@ fn get_pixel_format(window: HWND, force_sdr: bool) -> DXGI_FORMAT {
         sdr_format
     }
 }
+
+mod gs_device;
+mod gs_monitor_color_info;
+mod gs_texture_2d;
+mod util;
+
+pub use self::gs_device::GsDevice;

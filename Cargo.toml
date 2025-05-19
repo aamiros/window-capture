@@ -23,11 +23,16 @@ windows = { version = "0.61", features = [
     "Win32_System_WinRT_Graphics_Capture",
     "Win32_Graphics_Dxgi_Common",
     "Win32_Graphics_Gdi",
+    "Win32_Devices_Display",
 ] }
 anyhow = "1.0"
+log = "0.4"
 
 [dependencies]
 windows = { workspace = true }
 anyhow = { workspace = true }
+log = { workspace = true }
+env_logger = "0.11"
 d3d11 = { path = "crates/d3d11" }
+graphics = { path = "crates/graphics" }
 windows-result = "0.3"
